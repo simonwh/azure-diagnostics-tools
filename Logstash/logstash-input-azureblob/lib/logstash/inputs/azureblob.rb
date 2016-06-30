@@ -40,13 +40,13 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   # blob_type
   # *Define the type of blob
   # *Possible values: [iis|normal]
-  config :blob_type, :validate => :string, :default => "normal"
+  config :blob_type, :validate => :string, :default => "block"
   
   # [New]
   # path_pattern
   # *Define the path pattern in the container in order to not take everything
   # *Can also be an array.
-  config :path_pattern, :validate => :array, :required => true
+  config :path_pattern, :validate => :array, :required => false
 
   # [New]
   # since_db
@@ -56,9 +56,24 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   config :since_db, :validate => :string
 
   # [New]
-  # start_from
-  # *Define which blob we want to watch using start_from. If any file with last_modification is before that, we consider it obsolete. Any file having a newer "last_modification" >= will be taken.
-  config :start_from, :validate => :string
+  # When the file input discovers a file that was last modified
+  # before the specified timespan in seconds, the file is ignored.
+  # After it's discovery, if an ignored file is modified it is no
+  # longer ignored and any new data is read. The default is 24 hours.
+  config :ignore_older, :validate => :number, :default => 24 * 60 * 60
+
+  # [Not implemented, but easy to do]
+  # Choose where Logstash starts initially reading blob: at the beginning or
+  # at the end. The default behavior treats files like live streams and thus
+  # starts at the end. If you have old data you want to import, set this
+  # to 'beginning'.
+  #
+  # This option only modifies "first contact" situations where a file
+  # is new and not seen before, i.e. files that don't have a current
+  # position recorded in a sincedb file read by Logstash. If a file
+  # has already been seen before, this option has no effect and the
+  # position recorded in the sincedb file will be used.
+  config :start_position, :validate => [ "beginning", "end"], :default => "end"
 
   # Initialize the plugin
   def initialize(*args)
@@ -96,32 +111,27 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   # Returns the list of blob_names to read from.
   def list_blobs
     blobs = Hash.new
+    now_time = DateTime.now.new_offset(0)
     
     loop do
       continuation_token = NIL
-      # Each blob contains their respective properties
-      # * :last_modified
-      # * :etag
-      # * :lease_status
-      # * :lease_state
-      # * :content_length
-      # * :content_type
-      # * :content_encoding
-      # * :content_language
-      # * :content_md5
-      # * :cache_control
-      # * :blob_type
       entries = @azure_blob.list_blobs(@container, { :timeout => 10, :marker => continuation_token})
       entries.each do |entry|
         # Todo, use regex pattern check instead of hard check.
-        if :path_pattern 
-          if :path_pattern === entry.name
+        #if :path_pattern 
+        #  if :path_pattern === entry.name
+          entry_last_modified = DateTime.parse(entry.properties[:last_modified]) # Normally in GMT 0
+          elapsed_seconds = ((now_time - entry_last_modified) * 24 * 60 * 60).to_i
+          if (elapsed_seconds <= @ignore_older)
             blobs[entry.name] = entry
+            puts entry.name
           end
-        else
-          blobs[entry.name] = entry
-        end
+        #  end
+        #else
+        #  blobs[entry.name] = entry
+        #end
       end
+
       continuation_token = entries.continuation_token
       break if continuation_token.empty?
     end
@@ -167,16 +177,16 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   def list_sinceDbContainerEntities
     entities = Set.new
     
-    loop do
+    #loop do
       continuation_token = NIL
 
       entries = @azure_table.query_entities(@since_db, { :filter => "PartitionKey eq '#{container}'", :continuation_token => continuation_token}) 
       entries.each do |entry|
           entities << entry
       end
-      continuation_token = entries.continuation_token
-      break if continuation_token.empty?
-    end
+      #continuation_token = entries.continuation_token
+      #break if continuation_token.empty?
+    #end
 
     return entities
   end # def list_sinceDbContainerEntities
@@ -197,13 +207,8 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
 
       blobs.each do |blob_name, blob_info|
         blob_name_encoded = Base64.strict_encode64(blob_info.name)
-        entityIndex = existing_entities.find_index {|entity| entity.properties["RowKey"] == keyBase64 }
+        entityIndex = existing_entities.find_index {|entity| entity.properties["RowKey"] == blob_name_encoded }
 
-        # Entity row 
-        # *PartitionKey => Container name
-        # *RowKey       => Blob name
-        # *ByteOffset   => Define where we need to start reading
-        # *ETag         => Define the last ETag
         entity = { 
           "PartitionKey" => @container, 
           "RowKey" => blob_name_encoded, 
@@ -213,7 +218,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
 
         if (entityIndex)
           # exists in table
-          foundEntity = existing_entities[entityIndex];
+          foundEntity = existing_entities.to_a[entityIndex];
           entity["ByteOffset"] = foundEntity.properties["ByteOffset"]
           entity["ETag"] = foundEntity.properties["ETag"] 
         end
@@ -235,8 +240,6 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           @azure_table.insert_or_merge_entity(@since_db, entity)
         end
       end
-
-      return true
     else
       # Process the ones not yet processed. (The newly locked blob)
       blob_info = lock_blob(blobs)
