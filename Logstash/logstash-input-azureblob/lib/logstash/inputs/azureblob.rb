@@ -62,7 +62,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   # longer ignored and any new data is read. The default is 24 hours.
   config :ignore_older, :validate => :number, :default => 24 * 60 * 60
 
-  # [Not implemented, but easy to do]
+  # [New => Not tested and code commented]
   # Choose where Logstash starts initially reading blob: at the beginning or
   # at the end. The default behavior treats files like live streams and thus
   # starts at the end. If you have old data you want to import, set this
@@ -212,7 +212,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
         entity = { 
           "PartitionKey" => @container, 
           "RowKey" => blob_name_encoded, 
-          "ByteOffset" => 0, 
+          "ByteOffset" => 0, # First contact, start_position is beginning by default
           "ETag" => NIL
         }
 
@@ -221,6 +221,9 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           foundEntity = existing_entities.to_a[entityIndex];
           entity["ByteOffset"] = foundEntity.properties["ByteOffset"]
           entity["ETag"] = foundEntity.properties["ETag"] 
+        else #if (@start_position === "end")
+          # first contact
+          #  entity["byteOffset"] = blob_info.properties[:content_length]
         end
 
         if (entity["ETag"] === blob_info.properties[:etag])

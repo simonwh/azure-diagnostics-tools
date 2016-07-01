@@ -8,13 +8,14 @@ You can install this plugin using the Logstash "plugin" or "logstash-plugin" (fo
 ```sh
 logstash-plugin install logstash-input-azureblob
 ```
+
 For more information, see Logstash reference [Working with plugins](https://www.elastic.co/guide/en/logstash/current/working-with-plugins.html).
 
 ## Configuration
 ### Required Parameters
 __*storage_account_name*__
 
-The storage account name.
+The Azure storage account name.
 
 __*storage_access_key*__
 
@@ -24,23 +25,35 @@ __*container*__
 
 The blob container name.
 
-__*codec (optional)*__
+### Optional Parameters
+__*codec*__
 
-The codec used to decode the blob. By default *json_lines* is selected.
+The codec used to decode the blob. By default *json_lines* is selected. For normal log file, use *line* or other existing codec.
 
-__*sleep_time (optional) / Does not seems to be implemented*__
+**Default value: ** *json_lines*
 
-The sleep time before scanning for new data. By default *10* seconds.
+__*sleep_time*__
 
-__*since_db (optional)*__
+The sleep time before scanning for new data. 
 
-Use Azure Table to keep track of what have been done. This define the table name that will be used.
+**Default value:** *10* seconds.
 
-No default value, if a value is defined, than it will create the *since_db*.
+**Note:** Does not seems to be implemented
 
+__*since_db*__
+
+The Azure Table name to keep track of what have been done like when we use the file plugin. This define the table name that will be used.
+
+**Default value:** No default value, if a value is defined, than it will create the *sincedb* table in the blob account.
+
+__*ignore_older (Taken into account with the default only if we use sincedb)*__
+
+When the file input discovers a file that was last modified before the specified timespan in seconds, the file is ignored. After it's discovery, if an ignored file is modified it is no longer ignored and any new data is read. The default is 24 hours.
+
+**Default value:** *24&#42;60&#42;60* (24h)
+
+### Not yet implemented
 __*path_pattern (optional)*__
-
-**Not implemented**
 
 Array of Ruby RegEx defining the path pattern to watch in the blob container. Path are defined by the blob name (i.e.: /path/to/blob.log).
 
@@ -48,19 +61,30 @@ No default value.
 
 __*blob_type? (optional)*__
 
-**Not implemented**
+Possible values are *block* or *...*.
 
-Possible values are *normal* or *iis*. Since the WebApp in Azure use the blob to store the IIS Logs, the structure is well defined per hours. Once it was tracked and we are not anymore in that hour, we should not scan for this anymore.
+**Default value:** *block*
 
-Default value is *normal*.
+__*start_position*__
 
-__*start_from (optional)*__
+Choose where Logstash starts initially reading blob: at the beginning or
+at the end. The default behavior treats files like live streams and thus
+starts at the end. If you have old data you want to import, set this
+to 'beginning'.
 
-**Not implemented**
 
-A string that define when to start from. The date format for the string is as following : Fri, 10 Jun 2016 06:59:57 GMT
+This option only modifies *"first contact"* situations where a file
+is new and not seen before, **i.e.** files that don't have a current
+position recorded in a sincedb read by Logstash. If a file
+has already been seen before, this option has no effect and the
+position recorded in the sincedb file will be used.
 
-### Examples
+**Possible values:** [beginning | end]
+
+**Default value:** *beginning*
+
+### Example 1 /basic/
+Read from a blob (any type) and send it to ElasticSearch.
 ```
 input
 {
@@ -71,6 +95,41 @@ input
         container => "mycontainer"
     }
 }
+output
+{
+  elasticsearch {
+    hosts => "localhost"
+    index => "logstash-azureblob-%{+YYYY-MM-dd}"
+  }
+} 
+```
+
+#### What will it do
+It will get the blob, create an empty lock file (512 bytes) and read the entire blob **only once**. Each iteration of the plugin will take a new file and create a new lock file and push the original file to ElasticSearch. If any modification are made on the blob file, it won't be taken into account to push the new data to ElasticSearch. 
+
+### Exaple 2 /since_db/
+Read from a blob and send it to ElasticSearch and keep track of where we are in the file.
+
+```
+input
+{
+    azureblob
+    {
+        storage_account_name => "mystorageaccount"
+        storage_access_key => "VGhpcyBpcyBhIGZha2Uga2V5Lg=="
+        container => "mycontainer"
+        since_db => "sincedb"
+        codec => "line" # Optional => use line instead of json
+        ignore_older => 2*60*60 # Optional => Override to 2hours instead of 24 hours
+    }
+}
+output
+{
+  elasticsearch {
+    hosts => "localhost"
+    index => "logstash-azureblob-%{+YYYY-MM-dd}"
+  }
+} 
 ```
 
 ## More information
