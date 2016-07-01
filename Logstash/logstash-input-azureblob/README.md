@@ -30,7 +30,7 @@ __*codec*__
 
 The codec used to decode the blob. By default *json_lines* is selected. For normal log file, use *line* or other existing codec.
 
-* **Default value: ** *json_lines*
+* **Default value:** *json_lines*
 
 __*sleep_time*__
 
