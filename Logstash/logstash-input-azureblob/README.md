@@ -42,7 +42,9 @@ The sleep time before scanning for new data.
 __*sincedb*__
 
 The Azure Table name to keep track of what have been done like when we 
-use the file plugin. This define the table name that will be used.
+use the file plugin. This define the table name that will be used during 
+the process. **IMPORTANT** This will __not__ take into account any *.lock* 
+files. It will also __not__ create any *.lock* files. 
 
 * **Default value:** No default value, if a value is defined, than it will 
 create the *sincedb* table in the blob account.
