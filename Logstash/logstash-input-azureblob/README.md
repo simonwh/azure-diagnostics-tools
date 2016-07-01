@@ -79,10 +79,10 @@ Array of blob "path" prefixes. It defines the path prefix to watch in the
 blob container. Path are defined by the blob name (i.e.: &#91;"path/to/blob.log"&#93;). 
 Regex cannot really be used to optimize perfs.
 
-I recommend to use the paths in order to speed up the processing. By example, 
+I recommend to use the paths in order to speed up the processing. *By example, 
 WebApp on azure with IIS logging enabled will create one folder per hour. If 
 you keep the logs for a long retention it will select all before keeping only 
-the last modified ones.
+the last modified ones.*
 
 * **Default value:** *&#91;&quot;&quot;&#93;*
 
