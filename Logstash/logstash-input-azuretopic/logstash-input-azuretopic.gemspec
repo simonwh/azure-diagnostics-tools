@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'logstash-input-azuretopic'
-  s.version       = '0.9.5'
+  s.version       = '0.9.6'
   s.licenses      = ['Apache License (2.0)']
   s.summary       = "This plugin reads messages from Azure Service Bus Topics."
   s.description   = "This gem is a Logstash plugin. It reads messages from Azure Service Bus Topics."

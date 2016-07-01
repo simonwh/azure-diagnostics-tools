@@ -11,10 +11,6 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   # Define the plugin name
   config_name "azureblob"
 
-  # Define the milestone
-  # Ref: https://github.com/elastic/logstash/blob/1.4/docs/plugin-milestones.md
-  milestone 1
-
   # Codec
   # *Possible values available at https://www.elastic.co/guide/en/logstash/current/codec-plugins.html
   # *Most used: json_lines, line, etc.
@@ -22,47 +18,38 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   
   # storage_account_name
   # *Define the Azure Storage Account Name
-  config :storage_account_name, :validate => :string
+  config :storage_account_name, :validate => :string, :required => true
 
   # storage_access_key
   # *Define the Azure Storage Access Key (available through the portal)
-  config :storage_access_key, :validate => :string
+  config :storage_access_key, :validate => :string, :required => true
 
   # container
   # *Define the container to watch
-  config :container, :validate => :string
+  config :container, :validate => :string, :required => true
 
   # sleep_time
   # *Define the sleep_time between scanning for new data
-  config :sleep_time, :validate => :number, :default => 10
-  
+  config :sleep_time, :validate => :number, :default => 10, :required => false
+    
   # [New]
-  # blob_type
-  # *Define the type of blob
-  # *Possible values: [iis|normal]
-  config :blob_type, :validate => :string, :default => "block"
-  
-  # [New]
-  # path_pattern
-  # *Define the path pattern in the container in order to not take everything
-  # *Can also be an array.
-  config :path_pattern, :validate => :array, :required => false
+  # path_prefix
+  # *Define the path prefix in the container in order to not take everything
+  config :path_prefix, :validate => :array, :default => [""], :required => false
 
-  # [New]
-  # since_db
+  # sincedb
   # *Define the Azure Storage Table where we can drop information about the the blob we're collecting. 
-  # *Important! The since_db will be on the container we're watching.
-  # *By default, we don't use the since_db
-  config :since_db, :validate => :string
+  # *Important! The sincedb will be on the container we're watching.
+  # *By default, we don't use the sincedb but I recommend it if files gets updated.
+  config :sincedb, :validate => :string, :required => false
 
-  # [New]
+  # ignore_older
   # When the file input discovers a file that was last modified
   # before the specified timespan in seconds, the file is ignored.
   # After it's discovery, if an ignored file is modified it is no
   # longer ignored and any new data is read. The default is 24 hours.
-  config :ignore_older, :validate => :number, :default => 24 * 60 * 60
+  config :ignore_older, :validate => :number, :default => 24 * 60 * 60, :required => false
 
-  # [New => Not tested and code commented]
   # Choose where Logstash starts initially reading blob: at the beginning or
   # at the end. The default behavior treats files like live streams and thus
   # starts at the end. If you have old data you want to import, set this
@@ -73,7 +60,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   # position recorded in a sincedb file read by Logstash. If a file
   # has already been seen before, this option has no effect and the
   # position recorded in the sincedb file will be used.
-  config :start_position, :validate => [ "beginning", "end"], :default => "end"
+  config :start_position, :validate => [ "beginning", "end"], :default => "end", :required => false
 
   # Initialize the plugin
   def initialize(*args)
@@ -88,19 +75,19 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
     end
     @azure_blob = Azure::Blob::BlobService.new
     
-    if (@since_db)
+    if (@sincedb)
       @azure_table = Azure::Table::TableService.new
       init_wad_table
     end
   end # def register
   
-  # Initialize the WAD Table if we have a since_db defined.
+  # Initialize the WAD Table if we have a sincedb defined.
   def init_wad_table
-    if (@since_db)
+    if (@sincedb)
       begin
-        @azure_table.create_table(@since_db) # Be sure that the table name is properly named.
+        @azure_table.create_table(@sincedb) # Be sure that the table name is properly named.
       rescue
-        # table already exists
+        @logger.info("#{DateTime.now} Table #{@sincedb} already exists.")
       end
     end
   end # def init_wad_table
@@ -112,29 +99,27 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   def list_blobs
     blobs = Hash.new
     now_time = DateTime.now.new_offset(0)
-    
-    loop do
-      continuation_token = NIL
-      entries = @azure_blob.list_blobs(@container, { :timeout => 10, :marker => continuation_token})
-      entries.each do |entry|
-        # Todo, use regex pattern check instead of hard check.
-        #if :path_pattern 
-        #  if :path_pattern === entry.name
+
+    @logger.info("#{DateTime.now} Looking for blobs in #{path_prefix.length} paths (#{path_prefix.to_s})...")
+
+    path_prefix.each do |prefix|
+      loop do
+        continuation_token = NIL
+        entries = @azure_blob.list_blobs(@container, { :timeout => 10, :marker => continuation_token, :prefix => prefix})
+        entries.each do |entry|
           entry_last_modified = DateTime.parse(entry.properties[:last_modified]) # Normally in GMT 0
           elapsed_seconds = ((now_time - entry_last_modified) * 24 * 60 * 60).to_i
           if (elapsed_seconds <= @ignore_older)
             blobs[entry.name] = entry
-            puts entry.name
           end
-        #  end
-        #else
-        #  blobs[entry.name] = entry
-        #end
-      end
+        end
 
-      continuation_token = entries.continuation_token
-      break if continuation_token.empty?
-    end
+        continuation_token = entries.continuation_token
+        break if continuation_token.empty?
+      end
+    end 
+
+    @logger.info("#{DateTime.now} Finished looking for blobs. #{blobs.length} are queued for possible candidate with new data")
 
     return blobs
   end # def list_blobs
@@ -152,7 +137,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
     rescue LogStash::ShutdownSignal => e
       raise e
     rescue => e
-      @logger.error("Caught exception while locking", :exception => e)
+      @logger.error("#{DateTime.now} Caught exception while locking", :exception => e)
     return false
   end # def acquire_lock
   
@@ -176,11 +161,11 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
 
   def list_sinceDbContainerEntities
     entities = Set.new
-    
+
     #loop do
       continuation_token = NIL
 
-      entries = @azure_table.query_entities(@since_db, { :filter => "PartitionKey eq '#{container}'", :continuation_token => continuation_token}) 
+      entries = @azure_table.query_entities(@sincedb, { :filter => "PartitionKey eq '#{container}'", :continuation_token => continuation_token}) 
       entries.each do |entry|
           entities << entry
       end
@@ -198,12 +183,8 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
     # use the azure table in order to set the :start_range and :end_range
     # When we do that, we shouldn't use the lock strategy, since we know where we are at. It would still be interesting in a multi-thread
     # environment.
-    if (@since_db)
-      ## TODO implement the start from.
-      #if (@start_from)
-      # blob_info.properties[:last_modified]
-
-      existing_entities = list_sinceDbContainerEntities # @azure_table.query_entities(@since_db, { :filter => "PartitionKey eq '#{container}'"}) # continuation_token...
+    if (@sincedb)
+      existing_entities = list_sinceDbContainerEntities # @azure_table.query_entities(@sincedb, { :filter => "PartitionKey eq '#{container}'"}) # continuation_token...
 
       blobs.each do |blob_name, blob_info|
         blob_name_encoded = Base64.strict_encode64(blob_info.name)
@@ -213,7 +194,8 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           "PartitionKey" => @container, 
           "RowKey" => blob_name_encoded, 
           "ByteOffset" => 0, # First contact, start_position is beginning by default
-          "ETag" => NIL
+          "ETag" => NIL,
+          "BlobName" => blob_info.name
         }
 
         if (entityIndex)
@@ -221,18 +203,21 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           foundEntity = existing_entities.to_a[entityIndex];
           entity["ByteOffset"] = foundEntity.properties["ByteOffset"]
           entity["ETag"] = foundEntity.properties["ETag"] 
-        else #if (@start_position === "end")
+        elsif (@start_position === "end")
           # first contact
-          #  entity["byteOffset"] = blob_info.properties[:content_length]
+          entity["byteOffset"] = blob_info.properties[:content_length]
         end
 
         if (entity["ETag"] === blob_info.properties[:etag])
           # nothing to do...
-          # puts "Blob already up to date"
+          # @logger.info("#{DateTime.now} Blob already up to date #{blob_info.name}")
         else
+          @logger.info("#{DateTime.now} Processing #{blob_info.name}")
           blob, content = @azure_blob.get_blob(@container,  blob_info.name, { :start_range => entity["ByteOffset"], :end_range =>  blob_info.properties[:content_length] })
 
           @codec.decode(content) do |event|
+            decorate(event) # we could also add the host name that read the blob in the event from here.
+            # event["host"] = hostname...
             output_queue << event
           end 
 
@@ -240,7 +225,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           # we will re-process the last batch.
           entity["ByteOffset"] = blob_info.properties[:content_length]
           entity["ETag"] = blob_info.properties[:etag]
-          @azure_table.insert_or_merge_entity(@since_db, entity)
+          @azure_table.insert_or_merge_entity(@sincedb, entity)
         end
       end
     else
@@ -248,9 +233,13 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
       blob_info = lock_blob(blobs)
     
       # Do what we were doing before
-      return if !blob_info.name
+      return if !blob_info
+        @logger.info("#{DateTime.now} Processing #{blob_info.name}")
+        
         blob, content = @azure_blob.get_blob(@container, blob_info.name)
         @codec.decode(content) do |event|
+          decorate(event) # we could also add the host name that read the blob in the event from here.
+          # event["host"] = hostname...
           output_queue << event
       end
     end
@@ -259,7 +248,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
     rescue LogStash::ShutdownSignal => e
       raise e
     rescue => e
-      @logger.error("Oh My, An error occurred.", :exception => e)
+      @logger.error("#{DateTime.now} Oh My, An error occurred.", :exception => e)
   end # def process
   
   # Run the plugin (Called directly by LogStash)
@@ -267,14 +256,14 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   def run(output_queue)
     # Infinite processing loop.
     while !stop?
-      process(output_queue)
-      
-      # todo maybe we should wait using the sleep_time ?
+      process(output_queue)      
+      sleep sleep_time
     end # loop
   end # def run
  
   public
   def teardown
     # Nothing to do.
+    @logger.info("Teardown")
   end # def teardown
-end # class LogStash::Inputs::Azuretopic
+end # class LogStash::Inputs::Azureblob
