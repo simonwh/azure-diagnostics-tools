@@ -73,7 +73,7 @@ position recorded in the sincedb file will be used.
 * **Dependency:** *sincedb* needs to be activated. 
 * **Default value:** *beginning*
 
-__*path_prefix (optional)*__
+__*path_prefix*__
 
 Array of blob "path" prefixes. It defines the path prefix to watch in the 
 blob container. Path are defined by the blob name (i.e.: &#91;"path/to/blob.log"&#93;). 
