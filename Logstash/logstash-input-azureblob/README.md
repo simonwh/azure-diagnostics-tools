@@ -47,7 +47,7 @@ use the file plugin. This define the table name that will be used.
 * **Default value:** No default value, if a value is defined, than it will 
 create the *sincedb* table in the blob account.
 
-__*ignore_older (Taken into account with the default only if we use sincedb)*__
+__*ignore_older*__
 
 When the file input discovers a file that was last modified before the 
 specified timespan in seconds, the file is ignored. After it's discovery, 
