@@ -44,6 +44,10 @@ __*idle_delay_seconds*__
 
 Specifies the seconds to wait between each processing loop. The default value is 15.  
 
+__*endpoint*__
+
+Specifies the endpoint of Azure environment. The default value is "core.windows.net".  
+
 ### Examples
 ```
 input

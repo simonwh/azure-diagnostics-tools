@@ -17,6 +17,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   config :collection_start_time_utc, :validate => :string, :default => Time.now.utc.iso8601
   config :etw_pretty_print, :validate => :boolean, :default => false
   config :idle_delay_seconds, :validate => :number, :default => 15
+  config :endpoint, :validate => :string, :default => "core.windows.net"
 
   TICKS_SINCE_EPOCH = Time.utc(0001, 01, 01).to_i * 10000000
 
@@ -29,6 +30,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
     Azure.configure do |config|
       config.storage_account_name = @account_name
       config.storage_access_key = @access_key
+      config.storage_table_host = "https://#{@account_name}.table.#{@endpoint}"
      end
     @azure_table_service = Azure::Table::TableService.new
     @last_timestamp = @collection_start_time_utc
