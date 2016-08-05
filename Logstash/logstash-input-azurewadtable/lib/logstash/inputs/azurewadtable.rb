@@ -18,6 +18,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   config :etw_pretty_print, :validate => :boolean, :default => false
   config :idle_delay_seconds, :validate => :number, :default => 15
   config :endpoint, :validate => :string, :default => "core.windows.net"
+  config :data_latency_seconds, :validate => :number, :default => 0
 
   TICKS_SINCE_EPOCH = Time.utc(0001, 01, 01).to_i * 10000000
 
@@ -52,14 +53,34 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   def teardown
   end  
 
-  def process(output_queue)
-    @logger.debug(@last_timestamp)
+  def build_latent_query
+    @logger.debug(@until_timestamp)
+    query_filter = "(PartitionKey gt '#{partitionkey_from_datetime(@last_timestamp)}' and PartitionKey lt '#{partitionkey_from_datetime(@until_timestamp)}')"
+    for i in 0..99
+      query_filter << " or (PartitionKey gt '#{i.to_s.rjust(19, '0')}___#{partitionkey_from_datetime(@last_timestamp)}' and PartitionKey lt '#{i.to_s.rjust(19, '0')}___#{partitionkey_from_datetime(@until_timestamp)}')"
+    end # for block
+    query_filter = query_filter.gsub('"','')
+    query_filter
+  end
+
+  def build_zero_latency_query
     # query data using start_from_time
     query_filter = "(PartitionKey gt '#{partitionkey_from_datetime(@last_timestamp)}')"
     for i in 0..99
       query_filter << " or (PartitionKey gt '#{i.to_s.rjust(19, '0')}___#{partitionkey_from_datetime(@last_timestamp)}' and PartitionKey lt '#{i.to_s.rjust(19, '0')}___9999999999999999999')"
     end # for block
     query_filter = query_filter.gsub('"','')
+    query_filter
+  end
+
+  def process(output_queue)
+    @logger.debug(@last_timestamp)
+    if @data_latency_seconds > 0
+      @until_timestamp = (Time.now - @data_latency_seconds).iso8601 unless @continuation_token
+      query_filter = build_latent_query
+    else
+      query_filter = build_zero_latency_query
+    end
     @logger.debug("Query filter: " + query_filter)
     query = { :top => @entity_count_to_process, :filter => query_filter, :continuation_token => @continuation_token }
     result = @azure_table_service.query_entities(@table_name, query)
