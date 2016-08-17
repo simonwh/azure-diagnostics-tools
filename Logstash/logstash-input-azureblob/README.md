@@ -34,26 +34,26 @@ The codec used to decode the blob. By default *json_lines* is selected. For norm
 
 __*sleep_time*__
 
-The sleep time before scanning for new data. 
+The sleep time before scanning for new data.
 
 * **Default value:** *10* seconds.
 * **Note:** Does not seems to be implemented
 
 __*sincedb*__
 
-The Azure Table name to keep track of what have been done like when we 
-use the file plugin. This define the table name that will be used during 
-the process. **IMPORTANT** This will __not__ take into account any *.lock* 
-files. It will also __not__ create any *.lock* files. 
+The Azure Table name to keep track of what have been done like when we
+use the file plugin. This define the table name that will be used during
+the process. **IMPORTANT** This will __not__ take into account any *.lock*
+files. It will also __not__ create any *.lock* files.
 
-* **Default value:** No default value, if a value is defined, than it will 
+* **Default value:** No default value, if a value is defined, than it will
 create the *sincedb* table in the blob account.
 
 __*ignore_older*__
 
-When the file input discovers a file that was last modified before the 
-specified timespan in seconds, the file is ignored. After it's discovery, 
-if an ignored file is modified it is no longer ignored and any new data 
+When the file input discovers a file that was last modified before the
+specified timespan in seconds, the file is ignored. After it's discovery,
+if an ignored file is modified it is no longer ignored and any new data
 is read. The default is 24 hours.
 
 * **Default value:** *24&#42;60&#42;60* (24h)
@@ -72,26 +72,31 @@ has already been seen before, this option has no effect and the
 position recorded in the sincedb file will be used.
 
 * **Possible values:** &#91;beginning &#124; end&#93;
-* **Dependency:** *sincedb* needs to be activated. 
+* **Dependency:** *sincedb* needs to be activated.
 * **Default value:** *beginning*
 
 __*path_prefix*__
 
-Array of blob "path" prefixes. It defines the path prefix to watch in the 
-blob container. Path are defined by the blob name (i.e.: &#91;"path/to/blob.log"&#93;). 
+Array of blob "path" prefixes. It defines the path prefix to watch in the
+blob container. Path are defined by the blob name (i.e.: &#91;"path/to/blob.log"&#93;).
 Regex cannot really be used to optimize perfs.
 
-I recommend to use the paths in order to speed up the processing. *By example, 
-WebApp on azure with IIS logging enabled will create one folder per hour. If 
-you keep the logs for a long retention it will select all before keeping only 
+I recommend to use the paths in order to speed up the processing. *By example,
+WebApp on azure with IIS logging enabled will create one folder per hour. If
+you keep the logs for a long retention it will select all before keeping only
 the last modified ones.*
 
 * **Default value:** *&#91;&quot;&quot;&#93;*
+
+__*endpoint*__
+
+Specifies the endpoint of Azure Service Management. The default value is "core.windows.net".
 
 ***
 
 ### Example 1 Basic (out of the box)
 Read from a blob (any type) and send it to ElasticSearch.
+
 ```
 input
 {
@@ -108,7 +113,7 @@ output
     hosts => "localhost"
     index => "logstash-azureblob-%{+YYYY-MM-dd}"
   }
-} 
+}
 ```
 
 #### What will it do
