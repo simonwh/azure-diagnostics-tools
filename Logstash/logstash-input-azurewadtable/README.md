@@ -52,7 +52,7 @@ Specifies the endpoint of Azure environment. The default value is "core.windows.
 ```
 input
 {
-    azurewadeventhub
+    azurewadtable
     {
         account_name => "mystorageaccount"
         access_key => "VGhpcyBpcyBhIGZha2Uga2V5Lg=="
