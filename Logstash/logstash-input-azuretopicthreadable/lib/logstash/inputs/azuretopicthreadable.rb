@@ -45,6 +45,7 @@ class LogStash::Inputs::Azuretopicthreadable < LogStash::Inputs::Base
         if message
           # decoding returns a yield
           codec.decode(message.body) do |event|
+          decorate(event)
           output_queue << event
         end # codec.decode
         # delete the message after reading it
