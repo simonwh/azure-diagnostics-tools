@@ -55,6 +55,7 @@ class LogStash::Inputs::Azureeventhub < LogStash::Inputs::Base
         msg = receiver.receive(10)
         if msg
           codec.decode(get_pay_load(msg)) do |event|
+            decorate(event)
             output_queue << event
           end
           receiver.acknowledge(msg)
