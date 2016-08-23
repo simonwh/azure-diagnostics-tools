@@ -36,6 +36,7 @@ class LogStash::Inputs::Azuretopic < LogStash::Inputs::Base
     message = @azure_service_bus.receive_subscription_message(@topic ,@subscription, { :peek_lock => true, :timeout => 1 } )
     if message
       codec.decode(message.body) do |event|
+        decorate(event)
         output_queue << event
       end # codec.decode
       @azure_service_bus.delete_subscription_message(message)
