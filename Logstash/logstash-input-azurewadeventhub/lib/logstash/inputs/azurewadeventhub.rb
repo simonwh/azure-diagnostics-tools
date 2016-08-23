@@ -81,6 +81,7 @@ class LogStash::Inputs::Azurewadeventhub < LogStash::Inputs::Base
         if msg
           event = get_pay_load(msg, partition)
           if event
+            decorate(event)
             output_queue << event
           end
           receiver.acknowledge(msg)
