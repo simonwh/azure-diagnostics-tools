@@ -18,7 +18,10 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   config :etw_pretty_print, :validate => :boolean, :default => false
   config :idle_delay_seconds, :validate => :number, :default => 15
   config :endpoint, :validate => :string, :default => "core.windows.net"
-  config :data_latency_seconds, :validate => :number, :default => 0
+
+  # Default 1 minute delay to ensure all data is published to the table before querying.
+  # See issue #23 for more: https://github.com/Azure/azure-diagnostics-tools/issues/23
+  config :data_latency_minutes, :validate => :number, :default => 1
 
   TICKS_SINCE_EPOCH = Time.utc(0001, 01, 01).to_i * 10000000
 
@@ -54,7 +57,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   end  
 
   def build_latent_query
-    @logger.debug(@until_timestamp)
+    @logger.debug("from #{@last_timestamp} to #{@until_timestamp}")
     query_filter = "(PartitionKey gt '#{partitionkey_from_datetime(@last_timestamp)}' and PartitionKey lt '#{partitionkey_from_datetime(@until_timestamp)}')"
     for i in 0..99
       query_filter << " or (PartitionKey gt '#{i.to_s.rjust(19, '0')}___#{partitionkey_from_datetime(@last_timestamp)}' and PartitionKey lt '#{i.to_s.rjust(19, '0')}___#{partitionkey_from_datetime(@until_timestamp)}')"
@@ -64,6 +67,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   end
 
   def build_zero_latency_query
+    @logger.debug("from #{@last_timestamp} to most recent data")
     # query data using start_from_time
     query_filter = "(PartitionKey gt '#{partitionkey_from_datetime(@last_timestamp)}')"
     for i in 0..99
@@ -74,9 +78,8 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
   end
 
   def process(output_queue)
-    @logger.debug(@last_timestamp)
-    if @data_latency_seconds > 0
-      @until_timestamp = (Time.now - @data_latency_seconds).iso8601 unless @continuation_token
+    if @data_latency_minutes > 0
+      @until_timestamp = (Time.now - (60 * @data_latency_minutes)).iso8601 unless @continuation_token
       query_filter = build_latent_query
     else
       query_filter = build_zero_latency_query
