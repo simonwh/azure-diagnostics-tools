@@ -90,38 +90,44 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
     @continuation_token = result.continuation_token
 
     if result and result.length > 0
+      lastGood_timestamp = nil
       result.each do |entity|
         event = LogStash::Event.new(entity.properties)
         event["type"] = @table_name
 
         # Help pretty print etw files
         if (@etw_pretty_print && !event["EventMessage"].nil? && !event["Message"].nil?)
-          logger.debug("event: " + event.to_s)
+          @logger.debug("event: " + event.to_s)
           eventMessage = event["EventMessage"].to_s
           message = event["Message"].to_s
-          logger.debug("EventMessage: " + eventMessage)
-          logger.debug("Message: " + message)
+          @logger.debug("EventMessage: " + eventMessage)
+          @logger.debug("Message: " + message)
           if (eventMessage.include? "%")
-            logger.debug("starting pretty print")
+            @logger.debug("starting pretty print")
             toReplace = eventMessage.scan(/%\d+/)
             payload = message.scan(/(?<!\\S)([a-zA-Z]+)=(\"[^\"]*\")(?!\\S)/)
             # Split up the format string to seperate all of the numbers
             toReplace.each do |key| 
-              logger.debug("Replacing key: " + key.to_s)
+              @logger.debug("Replacing key: " + key.to_s)
               index = key.scan(/\d+/).join.to_i
               newValue = payload[index - 1][1]
-              logger.debug("New Value: " + newValue)
+              @logger.debug("New Value: " + newValue)
               eventMessage[key] = newValue
             end # do block
             event["EventMessage"] = eventMessage
-            logger.debug("pretty print end. result: " + event["EventMessage"].to_s)
+            @logger.debug("pretty print end. result: " + event["EventMessage"].to_s)
           end
         end
         decorate(event)
         output_queue << event
+        if (!event["TIMESTAMP"].nil?)
+          lastGood_timestamp = event["TIMESTAMP"]
+        end
       end # each block
       @idle_delay = 0
-      @last_timestamp = result.last.properties["TIMESTAMP"].iso8601 unless @continuation_token
+      if (!lastGood_timestamp.nil?)
+        @last_timestamp = lastGood_timestamp.iso8601 unless @continuation_token
+      end
     else
       @logger.debug("No new results found.")
       @idle_delay = @idle_delay_seconds
