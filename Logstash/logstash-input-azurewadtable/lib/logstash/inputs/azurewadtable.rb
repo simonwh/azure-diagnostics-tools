@@ -90,7 +90,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
     @continuation_token = result.continuation_token
 
     if result and result.length > 0
-      lastGood_timestamp = nil
+      last_good_timestamp = nil
       result.each do |entity|
         event = LogStash::Event.new(entity.properties)
         event["type"] = @table_name
@@ -121,12 +121,12 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
         decorate(event)
         output_queue << event
         if (!event["TIMESTAMP"].nil?)
-          lastGood_timestamp = event["TIMESTAMP"]
+          last_good_timestamp = event["TIMESTAMP"]
         end
       end # each block
       @idle_delay = 0
-      if (!lastGood_timestamp.nil?)
-        @last_timestamp = lastGood_timestamp.iso8601 unless @continuation_token
+      if (!last_good_timestamp.nil?)
+        @last_timestamp = last_good_timestamp.iso8601 unless @continuation_token
       end
     else
       @logger.debug("No new results found.")
