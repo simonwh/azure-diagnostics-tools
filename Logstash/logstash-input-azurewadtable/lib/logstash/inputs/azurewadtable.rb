@@ -1,7 +1,7 @@
 # encoding: utf-8
 require "logstash/inputs/base"
 require "logstash/namespace"
-
+require "time"
 require "azure"
 
 class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
