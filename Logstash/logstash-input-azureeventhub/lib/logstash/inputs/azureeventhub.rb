@@ -43,7 +43,7 @@ class LogStash::Inputs::Azureeventhub < LogStash::Inputs::Base
     return nil if not message
     message.getPayload().each do |section|
       if section.java_kind_of? org::apache::qpid::amqp_1_0::type::messaging::Data or section.java_kind_of? org::apache::qpid::amqp_1_0::type::messaging::AmqpValue
-        return section.getValue().to_s
+        return section.getValue().to_s.gsub("\\x5c", "\\")
       end
     end
     return nil
