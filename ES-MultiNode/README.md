@@ -35,7 +35,6 @@ Before running the script, open the `azuredeploy-parameters.json` file and verif
 |adminUsername           |The name of the administrator account for managing the Elastic Search cluster (corresponding SSH keys will be generated automatically)|
 |dataNodeCount           |The number of nodes in the Elastic Search cluster. The current version of the script does not distinguish between data and query nodes; all nodes will play both roles. Defaults to 3 nodes.|
 |dataDiskSize            |The size of data disks (in GB) that will be allocated for each data node. Each node will receive 4 data disks, exclusively dedicated to Elastic Search service.|
-|region                  |The name of Azure region where the Elastic Search cluster should be located.|
 |esUserName              |The user name of the user that will be configured to have access to ES cluster (subject to HTTP basic authentication). The password is not part of parameters file and must be provided when `CreateElasticSearchCluster` script is invoked.|
 |vmSizeDataNodes         |The Azure virtual machine size for Elastic Search cluster nodes. Defaults to Standard_D1.|
 
