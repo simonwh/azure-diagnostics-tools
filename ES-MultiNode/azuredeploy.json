@@ -111,9 +111,10 @@
     "sshKeyPath": "[concat('/home/',parameters('adminUsername'),'/.ssh/authorized_keys')]",
     "imagePublisher": "Canonical",
     "imageOffer": "UbuntuServer",
-    "ubuntuOSVersion": "15.10",
+    "ubuntuOSVersion": "16.04.0-LTS",
     "sharedStorageAccountName": "[concat('storage', uniqueString(resourceGroup().id))]",
-    "esVersion": "2.2.1",
+    "esVersion": "2.4.1",
+    "kibanaVersion": "4.6.1",
     "esClusterDnsName": "[concat(parameters('dnsNameForLoadBalancerIP'), '.', parameters('dnsDomainForLoadBalancerIP'))]",
     "adminNodeNicName": "adminNodeNic"
   },
@@ -393,7 +394,7 @@
             "https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/master/ES-MultiNode/es-ubuntu-install.sh",
             "https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/master/ES-MultiNode/vm-disk-utils-0.1.sh"
           ],
-          "commandToExecute": "[concat('bash es-ubuntu-install.sh ', ' -n ', parameters('dnsNameForLoadBalancerIP'), ' -d ', variables('dataNodesIpPrefix'), '4 -c ', parameters('dataNodeCount'), ' -v ', variables('esVersion'), ' -u ', parameters('esUserName'), ' -p ', parameters('esPassword'), ' -s ', variables('esClusterDnsName'))]"
+          "commandToExecute": "[concat('bash es-ubuntu-install.sh ', ' -n ', parameters('dnsNameForLoadBalancerIP'), ' -d ', variables('dataNodesIpPrefix'), '4 -c ', parameters('dataNodeCount'), ' -v ', variables('esVersion'), ' -u ', parameters('esUserName'), ' -p ', parameters('esPassword'), ' -s ', variables('esClusterDnsName'), ' -k ', variables('kibanaVersion'))]"
         }
       }
     },
