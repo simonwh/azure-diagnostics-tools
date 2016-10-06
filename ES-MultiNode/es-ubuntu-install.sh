@@ -219,7 +219,7 @@ sudo systemctl reload nginx
 
 
 echo "#################### Installing Kibana ####################"
-sudo wget "https://download.elastic.co/kibana/kibana/kibana-${kibana_version}-linux-x64.tar.gz"
+sudo wget "https://download.elastic.co/kibana/kibana/kibana-${kibana_version}-linux-x86_64.tar.gz"
 sudo tar xvf kibana-*.tar.gz 1>/dev/null
 sudo mkdir -p /opt/kibana
 sudo cp -R ./kibana-4*/* /opt/kibana
@@ -228,19 +228,19 @@ sudo cp ./kibana4.service /etc/systemd/system/kibana4.service
 sudo systemctl daemon-reload
 sudo systemctl enable kibana4.service
 sudo mkdir -p /var/log/kibana
-printf "\n\nlog_file: /var/log/kibana/kibana.log\n" >> /opt/kibana/config/kibana.yml
+printf "\n\nlog_file: /var/log/kibana/kibana.log\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
 # ES can take a while to start up, so increase the Kibana startup timeout to 2 minutes
-printf "startup_timeout: 120000\n" >> /opt/kibana/config/kibana.yml
+printf "startup_timeout: 120000\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
 
 
 echo "#################### Optimizing the system ####################"
 # Set Elasticsearch heap size to 50% of system memory
 # Consider: Move this to an init.d script so we can handle instance size increases
 es_heap_size=$(free -m |grep Mem | awk '{if ($2/2 >31744)  print 31744;else print $2/2;}')
-printf "\nES_HEAP_SIZE=%sm\n" $es_heap_size >> /etc/default/elasticseach
-printf "MAX_LOCKED_MEMORY=unlimited\n" >> /etc/default/elasticsearch
-echo "elasticsearch - nofile 65536" >> /etc/security/limits.conf
-echo "elasticsearch - memlock unlimited" >> /etc/security/limits.conf
+printf "\nES_HEAP_SIZE=%sm\n" $es_heap_size | sudo tee -a /etc/default/elasticseach > /dev/null
+printf "MAX_LOCKED_MEMORY=unlimited\n" | sudo tee -a /etc/default/elasticsearch > /dev/null
+printf "\nelasticsearch - nofile 65536" | sudo tee -a /etc/security/limits.conf > /dev/null
+printf "\nelasticsearch - memlock unlimited" | sudo tee -a /etc/security/limits.conf > /dev/null
 
 
 echo "#################### Starting services ####################"
