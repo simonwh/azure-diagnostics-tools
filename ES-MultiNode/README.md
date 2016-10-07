@@ -3,8 +3,6 @@
 This folder contains a set of scripts and and an [**Azure Resource Manager template**](https://azure.microsoft.com/documentation/articles/resource-group-overview/) for creating a multi-node [**ElasticSearch**](https://www.elastic.co/guide/index.html) cluster on Azure VMs (running Ubuntu Linux). The cluster is protected by HTTP basic authentication.
 
 ### Preparing a machine to run Elastic Search installation scripts
-First, download the current GitHub repository ([Microsoft Patterns & Practices ELK branch](https://github.com/mspnp/semantic-logging/tree/elk/)) to your machine (either by cloning the repo or downloading a ZIP file). The ARM template and scripts described here are located in the ES-MultiNode folder.
-
 The easiest way to use the ES-MultiNode template is through a provided PowerShell script called `CreateElasticSearchCluster`. To use this script you need to install **Azure PowerShell** and **openssl** tool. The latter is needed for creating an SSH key that can be used to administer your Elastic Search cluster remotely.
 
 > The `CreateElasticSearchCluster` script is designed to ease the use of the ES-MultiNode template from a Windows machine. It is possible to use the template on a non-Windows machine, but that scenario is beyond the scope of this article.
