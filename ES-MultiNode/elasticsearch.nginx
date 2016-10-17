@@ -3,28 +3,31 @@
 server { 
     listen 80;
     server_name __ES_DNS_NAME;
+    proxy_http_version 1.1;
 
     auth_basic "Elasticsearch Basic Auth";
     auth_basic_user_file /etc/nginx/conf.d/elasticsearch.pwd;
+
+    proxy_set_header  X-Real-IP  $remote_addr;
+    proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header  Host $http_host;
+    
+    # Special-casing head plugin which uses HTML-based redirects through http-equiv refresh
+    location /_plugin/head {
+        proxy_pass http://localhost:9200/_plugin/head;
+        proxy_redirect http://localhost:9200/_plugin/head http://__ES_DNS_NAME/es/_plugin/head;
+    }
 
     location /es {        
         rewrite ^/es/(.*)$ /$1 break;
         rewrite ^/es$ / break;
 
-        proxy_set_header  X-Real-IP  $remote_addr;
-        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header  Host $http_host;
-
         proxy_pass http://localhost:9200;
-        proxy_redirect http://localhost:9200 http://__ES_DNS_NAME/es/;
+        proxy_redirect http://localhost:9200 http://__ES_DNS_NAME/es;
     }
    
     location / {  
-        proxy_set_header  X-Real-IP  $remote_addr;
-        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header  Host $http_host;
-
         proxy_pass http://localhost:5601;
-        proxy_redirect http://localhost:5601 http://__ES_DNS_NAME/;
+        proxy_redirect http://localhost:5601 http://__ES_DNS_NAME;
     }
 }
