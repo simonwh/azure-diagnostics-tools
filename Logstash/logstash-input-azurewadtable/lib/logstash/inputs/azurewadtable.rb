@@ -119,6 +119,9 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
           end
         end
         decorate(event)
+        if event['PreciseTimeStamp'].is_a?(Time)
+          event['PreciseTimeStamp']=LogStash::Timestamp.new(event['PreciseTimeStamp'])
+        end
         output_queue << event
         if (!event["TIMESTAMP"].nil?)
           last_good_timestamp = event["TIMESTAMP"]
