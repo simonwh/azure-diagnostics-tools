@@ -72,6 +72,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
     Azure.configure do |config|
       config.storage_account_name = @storage_account_name
       config.storage_access_key = @storage_access_key
+      config.storage_table_host = "https://#{@storage_account_name}.table.core.windows.net"
     end
     @azure_blob = Azure::Blob::BlobService.new
     
