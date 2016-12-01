@@ -90,6 +90,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
     @continuation_token = result.continuation_token
 
     if result and result.length > 0
+      @logger.debug("#{result.length} results found.")
       last_good_timestamp = nil
       result.each do |entity|
         event = LogStash::Event.new(entity.properties)
@@ -122,14 +123,20 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
         if event.get('PreciseTimeStamp').is_a?(Time)
           event.set('PreciseTimeStamp', LogStash::Timestamp.new(event.get('PreciseTimeStamp')))
         end
-        output_queue << event
-        if (!event.get("TIMESTAMP").nil?)
-          last_good_timestamp = event.get("TIMESTAMP")
+        theTIMESTAMP = event.get('TIMESTAMP')
+        if theTIMESTAMP.is_a?(LogStash::Timestamp)
+          last_good_timestamp = theTIMESTAMP.to_iso8601
+        elsif theTIMESTAMP.is_a?(Time)
+          last_good_timestamp = theTIMESTAMP.iso8601
+          event.set('TIMESTAMP', LogStash::Timestamp.new(theTIMESTAMP))
+        else
+          @logger.warn("Found result with invalid TIMESTAMP. " + event.to_hash.to_s)
         end
+        output_queue << event
       end # each block
       @idle_delay = 0
       if (!last_good_timestamp.nil?)
-        @last_timestamp = last_good_timestamp.iso8601 unless @continuation_token
+        @last_timestamp = last_good_timestamp unless @continuation_token
       end
     else
       @logger.debug("No new results found.")
