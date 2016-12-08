@@ -57,7 +57,7 @@ class LogStash::Inputs::Azurewadeventhub < LogStash::Inputs::Base
             recordArray = json["records"]
             recordArray.each do |record|
               record.each do |name, value|
-                event[name] = value 
+                event.set("name", value)
               end
             end
           end
