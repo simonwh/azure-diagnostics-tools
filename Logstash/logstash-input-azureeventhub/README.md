@@ -63,7 +63,7 @@ Specifies the time (in seconds) to wait before another try if no message was rec
 ```
 input
 {
-    azurewadeventhub
+    azureeventhub
     {
         key => "VGhpcyBpcyBhIGZha2Uga2V5Lg=="
         username => "receivepolicy"
