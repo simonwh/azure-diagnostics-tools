@@ -19,9 +19,9 @@ Gem::Specification.new do |s|
   s.metadata = { "logstash_plugin" => "true", "logstash_group" => "input" }
 
   # Gem dependencies
-  s.add_runtime_dependency 'logstash-core', '~> 2.0'
+  s.add_runtime_dependency "logstash-core-plugin-api", ">= 1.60", "<= 2.99"
   s.add_runtime_dependency 'azure', '~> 0.7.1'
-  s.add_development_dependency 'logstash-devutils', '>= 0.0.16'
+    s.add_development_dependency 'logstash-devutils'
   
   #Jar dependencies
   s.requirements << "jar 'org.apache.qpid:qpid-amqp-1-0-common', '0.32'"
