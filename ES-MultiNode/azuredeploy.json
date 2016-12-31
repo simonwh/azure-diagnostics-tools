@@ -407,8 +407,8 @@
         "typeHandlerVersion": "1.4",
         "settings": {
           "fileUris": [
-            "https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/master/ES-MultiNode/es-ubuntu-install.sh",
-            "https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/master/ES-MultiNode/vm-disk-utils-0.1.sh"
+            "https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/dev/karolz/es-5/ES-MultiNode/es-ubuntu-install.sh",
+            "https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/dev/karolz/es-5/ES-MultiNode/vm-disk-utils-0.1.sh"
           ],
           "commandToExecute": "[concat('bash es-ubuntu-install.sh ', ' -n ', parameters('dnsNameForLoadBalancerIP'), ' -d ', variables('dataNodesIpPrefix'), '4 -c ', parameters('dataNodeCount'), ' -v ', variables('esVersion'), ' -u ', parameters('esUserName'), ' -p ', parameters('esPassword'), ' -s ', variables('esClusterDnsName'), ' -k ', variables('kibanaVersion'))]"
         }

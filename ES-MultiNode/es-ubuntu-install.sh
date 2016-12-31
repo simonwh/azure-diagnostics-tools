@@ -207,7 +207,7 @@ sudo systemctl enable nginx
 echo "#################### Configuring nginx ####################"
 sudo apt-get -qy install apache2-utils
 printf '%s' "$es_user_password" | sudo htpasswd -ic /etc/nginx/conf.d/elasticsearch.pwd $es_user_name
-config_fetch_cmd='curl -s https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/master/ES-MultiNode/elasticsearch.nginx | perl -wnlp -e s/__ES_DNS_NAME/'
+config_fetch_cmd='curl -s https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/dev/karolz/es-5/ES-MultiNode/elasticsearch.nginx | perl -wnlp -e s/__ES_DNS_NAME/'
 config_fetch_cmd+="$es_dns_name"
 config_fetch_cmd+='/g > elasticsearch.nginx.conf'
 eval "$config_fetch_cmd"
@@ -222,7 +222,7 @@ sudo wget "https://artifacts.elastic.co/downloads/kibana/kibana-${kibana_version
 sudo tar xvf kibana-*.tar.gz 1>/dev/null
 sudo mkdir -p /opt/kibana
 sudo cp -R ./kibana-5*/* /opt/kibana
-sudo wget https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/master/ES-MultiNode/kibana5.service
+sudo wget https://raw.githubusercontent.com/Azure/azure-diagnostics-tools/dev/karolz/es-5/ES-MultiNode/kibana5.service
 sudo cp ./kibana5.service /etc/systemd/system/kibana5.service
 sudo systemctl daemon-reload
 sudo systemctl enable kibana5.service
