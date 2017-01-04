@@ -243,16 +243,6 @@ printf "\nelasticsearch  - memlock unlimited" | sudo tee -a /etc/security/limits
 sudo mkdir -p /etc/systemd/system/elasticsearch.service.d
 printf "\n[Service]\nLimitMEMLOCK=infinity\n" | sudo tee -a /etc/systemd/system/elasticsearch.service.d/elasticsearch.conf > /dev/null
 
-echo "#################### Start Elasticsearch service ####################"
-sudo systemctl daemon-reload
-sudo systemctl start elasticsearch.service
-
-wait_for_elastic_svc;
-if [[ $? -ne 0 ]]; then
-    echo "ElasticSearch service has not started within expected time period. Cannot start Kibana service or install ES head plugin." >&2
-    exit 5
-fi
-
 echo "#################### Installing X-pack plugin ####################"
 sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install x-pack --batch
 sudo /opt/kibana/bin/kibana-plugin install x-pack --quiet
@@ -265,9 +255,16 @@ printf "xpack.graph.enabled: false\n" | sudo tee -a /etc/elasticsearch/elasticse
 printf "xpack.watcher.enabled: false\n" | sudo tee -a /etc/elasticsearch/elasticsearch.yml > /dev/null
 printf "xpack.reporting.enabled: false\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
 
-echo "#################### Restarting Elasticsearch and starting Kibana ####################"
+echo "#################### Starting Elasticsearch and Kibana ####################"
+sudo systemctl daemon-reload
 sudo systemctl start elasticsearch.service
+
 wait_for_elastic_svc;
+if [[ $? -ne 0 ]]; then
+    echo "ElasticSearch service has not started within expected time period. Cannot start Kibana service or install ES head plugin." >&2
+    exit 5
+fi
+
 sudo systemctl start kibana5.service
 
 exit 0
