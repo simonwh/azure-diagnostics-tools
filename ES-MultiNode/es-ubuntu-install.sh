@@ -235,7 +235,7 @@ printf "startup_timeout: 120000\n" | sudo tee -a /opt/kibana/config/kibana.yml >
 echo "#################### Optimizing the system ####################"
 # Set Elasticsearch heap size to 50% of system memory
 # Consider: Move this to an init.d script so we can handle instance size increases
-
+es_heap_size=$(free -m |grep Mem | awk '{if ($2/2 >31744)  print 31744;else print $2/2;}')
 printf "\nES_HEAP_SIZE=%sm\n" $es_heap_size | sudo tee -a /etc/default/elasticseach > /dev/null
 printf "MAX_LOCKED_MEMORY=unlimited\n" | sudo tee -a /etc/default/elasticsearch > /dev/null
 printf "\nelasticsearch - nofile 65536" | sudo tee -a /etc/security/limits.conf > /dev/null
