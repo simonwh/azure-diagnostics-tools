@@ -129,8 +129,8 @@
     "imageOffer": "UbuntuServer",
     "ubuntuOSVersion": "16.04.0-LTS",
     "sharedStorageAccountName": "[concat('storage', uniqueString(resourceGroup().id))]",
-    "esVersion": "2.4.1",
-    "kibanaVersion": "4.6.1",
+    "esVersion": "5.1.1",
+    "kibanaVersion": "5.1.1",
     "esClusterDnsName": "[concat(parameters('dnsNameForLoadBalancerIP'), '.', parameters('dnsDomainForLoadBalancerIP'))]",
     "adminNodeNicName": "adminNodeNic"
   },
