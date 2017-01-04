@@ -227,9 +227,9 @@ sudo cp ./kibana5.service /etc/systemd/system/kibana5.service
 sudo systemctl daemon-reload
 sudo systemctl enable kibana5.service
 sudo mkdir -p /var/log/kibana
-printf "\n\nlog_file: /var/log/kibana/kibana.log\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
+printf "\n\nlogging.dest: /var/log/kibana/kibana.log\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
 # ES can take a while to start up, so increase the Kibana startup timeout to 2 minutes
-printf "startup_timeout: 120000\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
+printf "elasticsearch.startupTimeout: 120000\n" | sudo tee -a /opt/kibana/config/kibana.yml > /dev/null
 
 
 echo "#################### Optimizing the system ####################"
@@ -244,6 +244,7 @@ sudo mkdir -p /etc/systemd/system/elasticsearch.service.d
 printf "\n[Service]\nLimitMEMLOCK=infinity\n" | sudo tee -a /etc/systemd/system/elasticsearch.service.d/elasticsearch.conf > /dev/null
 
 echo "#################### Start Elasticsearch service ####################"
+sudo systemctl daemon-reload
 sudo systemctl start elasticsearch.service
 
 wait_for_elastic_svc;
@@ -253,7 +254,8 @@ if [[ $? -ne 0 ]]; then
 fi
 
 echo "#################### Installing X-pack plugin ####################"
-sudo /usr/share/elasticsearch/bin/elasticsearch-plugin --batch install x-pack
+sudo /usr/share/elasticsearch/bin/elasticsearch-plugin install x-pack --batch
+sudo /opt/kibana/bin/kibana-plugin install x-pack --quiet
 
 # Disable all features that require paid subscription
 # Monitoring is left enabled--requires a free Basic License
