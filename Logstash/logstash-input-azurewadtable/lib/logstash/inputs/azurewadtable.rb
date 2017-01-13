@@ -47,7 +47,7 @@ class LogStash::Inputs::AzureWADTable < LogStash::Inputs::Base
     while !stop?
       @logger.debug("Starting process method @" + Time.now.to_s);
       process(output_queue)
-      @logger.debug("Starting delay of: " + @idle_delay_seconds.to_s + " seconds @" + Time.now.to_s);
+      @logger.debug("Starting delay of: " + @idle_delay.to_s + " seconds @" + Time.now.to_s);
       sleep @idle_delay
     end # while
   end # run
