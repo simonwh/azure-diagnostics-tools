@@ -144,7 +144,12 @@ var wadcfgConfigPrototype = {
                     "ApplicationInsights": "00000000-0000-0000-0000-000000000000",
                     "EventHub": {
                         "Url": "https://myeventhub-ns.servicebus.windows.net/diageventhub",
-                        "SharedAccessKeyName": "SendRule"
+                        "SharedAccessKeyName": "SendRule",
+                        "usePublisherId": false
+                    },
+                    "StorageAccount": {
+                        "name": "myAdditionalStorageAccount",
+                        "endpoint": "https://core.windows.net"
                     },
                     "Channels": {
                         "Channel": [
@@ -176,6 +181,24 @@ var wadcfgConfigPrototype = {
         "Url": "https://myeventhub-ns.servicebus.windows.net/diageventhub",
         "SharedAccessKeyName": "SendRule",
         "SharedAccessKey": "{base64 encoded key}"
+    },
+    "SecondaryStorageAccounts": {
+        "StorageAccount": [
+            {
+                "name": "secondarydiagstorageaccount",
+                "key": "{base64 encoded key}",
+                "endpoint": "https://core.windows.net"
+            }
+        ]
+    },
+    "SecondaryEventHubs": {
+        "EventHub": [
+            {
+                "Url": "https://myeventhub-ns.servicebus.windows.net/secondarydiageventhub",
+                "SharedAccessKeyName": "SendRule",
+                "SharedAccessKey": "{base64 encoded key}"
+            }
+        ]
     }
 }
 `.replace(/\\/g, "\\\\\\\\"), // Since this string will be fed through the JSON parser, all backslashes need to be escaped two more times
@@ -227,7 +250,8 @@ var wadcfgConfigPrototype = {
       <SinksConfig>
         <Sink name="applicationInsights">
           <ApplicationInsights>00000000-0000-0000-0000-000000000000</ApplicationInsights>
-          <EventHub Url="https://myeventhub-ns.servicebus.windows.net/diageventhub" SharedAccessKeyName="SendRule" />
+          <EventHub Url="https://myeventhub-ns.servicebus.windows.net/diageventhub" SharedAccessKeyName="SendRule" usePublisherId="false" />
+          <StorageAccount name="myAdditionalStorageAccount" endpoint="https://core.windows.net" />
           <Channels>
             <Channel logLevel="Error" name="errors" />
           </Channels>
@@ -244,6 +268,12 @@ var wadcfgConfigPrototype = {
   <PrivateConfig xmlns="http://schemas.microsoft.com/ServiceHosting/2010/10/DiagnosticsConfiguration">
     <StorageAccount name="diagstorageaccount" key="{base64 encoded key}" endpoint="https://core.windows.net" />
     <EventHub Url="https://myeventhub-ns.servicebus.windows.net/diageventhub" SharedAccessKeyName="SendRule" SharedAccessKey="{base64 encoded key}" />
+    <SecondaryStorageAccounts>
+        <StorageAccount name="secondarydiagstorageaccount" key="{base64 encoded key}" endpoint="https://core.windows.net" />
+    </SecondaryStorageAccounts>
+    <SecondaryEventHubs>
+        <EventHub Url="https://myeventhub-ns.servicebus.windows.net/secondarydiageventhub" SharedAccessKeyName="SendRule" SharedAccessKey="{base64 encoded key}" />
+    </SecondaryEventHubs>
   </PrivateConfig>
 `,
     
@@ -272,6 +302,38 @@ var wadcfgConfigPrototype = {
         {
             "json" : "/EventHub/SharedAccessKey",
             "xml" : "/EventHub/SharedAccessKey"
+        },
+        {
+            "json" : "/SecondaryStorageAccounts/StorageAccount",
+            "xml" :  "/SecondaryStorageAccounts/StorageAccount"
+        },
+        {
+            "json" : "/SecondaryStorageAccounts/StorageAccount/name",
+            "xml" :  "/SecondaryStorageAccounts/StorageAccount/name"
+        },
+        {
+            "json" : "/SecondaryStorageAccounts/StorageAccount/key",
+            "xml" :  "/SecondaryStorageAccounts/StorageAccount/key"
+        },
+        {
+            "json" : "/SecondaryStorageAccounts/StorageAccount/endpoint",
+            "xml" :  "/SecondaryStorageAccounts/StorageAccount/endpoint"
+        },
+        {
+            "json" : "/SecondaryEventHubs/EventHub",
+            "xml" :  "/SecondaryEventHubs/EventHub"
+        },
+        {
+            "json" : "/SecondaryEventHubs/EventHub/Url",
+            "xml" :  "/SecondaryEventHubs/EventHub/Url"
+        },
+        {
+            "json" : "/SecondaryEventHubs/EventHub/SharedAccessKeyName",
+            "xml" :  "/SecondaryEventHubs/EventHub/SharedAccessKeyName"
+        },
+        {
+            "json" : "/SecondaryEventHubs/EventHub/SharedAccessKey",
+            "xml" :  "/SecondaryEventHubs/EventHub/SharedAccessKey"
         }
     ]
 }
