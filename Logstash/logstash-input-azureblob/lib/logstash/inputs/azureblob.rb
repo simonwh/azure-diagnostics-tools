@@ -207,7 +207,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           entity["ETag"] = foundEntity.properties["ETag"]
         elsif (@start_position === "end")
           # first contact
-          entity["byteOffset"] = blob_info.properties[:content_length]
+          entity["ByteOffset"] = blob_info.properties[:content_length]
         end
 
         if (entity["ETag"] === blob_info.properties[:etag])
