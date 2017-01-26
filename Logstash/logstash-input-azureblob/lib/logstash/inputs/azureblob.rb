@@ -106,8 +106,8 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
     @logger.info("#{DateTime.now} Looking for blobs in #{path_prefix.length} paths (#{path_prefix.to_s})...")
 
     path_prefix.each do |prefix|
+      continuation_token = NIL
       loop do
-        continuation_token = NIL
         entries = @azure_blob.list_blobs(@container, { :timeout => 10, :marker => continuation_token, :prefix => prefix})
         entries.each do |entry|
           entry_last_modified = DateTime.parse(entry.properties[:last_modified]) # Normally in GMT 0
@@ -116,7 +116,6 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
             blobs[entry.name] = entry
           end
         end
-
         continuation_token = entries.continuation_token
         break if continuation_token.empty?
       end
