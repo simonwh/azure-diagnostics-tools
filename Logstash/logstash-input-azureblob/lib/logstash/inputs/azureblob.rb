@@ -164,14 +164,19 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
   def list_sinceDbContainerEntities
     entities = Set.new
 
-    #loop do
-      continuation_token = NIL
+    # We will only fetch db entities updated within @ignore_older timeframe. Solves the problem of max query result of 1000 and continuation_token not possible to use in this version of Azure gem.
+    entities_since = (DateTime.now.new_offset('UTC')-(@ignore_older/60/60/24.0)).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-      entries = @azure_table.query_entities(@sincedb, { :filter => "PartitionKey eq '#{container}'", :continuation_token => continuation_token})
+    continuation_token = NIL
+    #loop do
+      filter = "PartitionKey eq '#{container}' and Timestamp ge datetime'#{entities_since}'"
+      entries = @azure_table.query_entities(@sincedb, { :filter => filter, :continuation_token => continuation_token})
       entries.each do |entry|
           entities << entry
       end
-      #continuation_token = entries.continuation_token
+
+      # Library does not support continuation_token for tables?
+      #continuation_token = entries[:continuation_token] if entries[:continuation_token]
       #break if continuation_token.empty?
     #end
 
@@ -208,6 +213,7 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
         elsif (@start_position === "end")
           # first contact
           entity["ByteOffset"] = blob_info.properties[:content_length]
+          @logger.info("#{DateTime.now} First contact for #{blob_info.name}. Set ByteOffset to ContentLength so we will get new content from here.")
         end
 
         if (entity["ETag"] === blob_info.properties[:etag])
@@ -215,12 +221,19 @@ class LogStash::Inputs::Azureblob < LogStash::Inputs::Base
           # @logger.info("#{DateTime.now} Blob already up to date #{blob_info.name}")
         else
           @logger.info("#{DateTime.now} Processing #{blob_info.name}")
-          blob, content = @azure_blob.get_blob(@container,  blob_info.name, { :start_range => entity["ByteOffset"], :end_range =>  blob_info.properties[:content_length] })
 
-          @codec.decode(content) do |event|
-            decorate(event) # we could also add the host name that read the blob in the event from here.
-            # event["host"] = hostname...
-            output_queue << event
+          if entity["ByteOffset"] == blob_info.properties[:content_length]
+            @logger.info("#{DateTime.now} Offset (#{entity["ByteOffset"]}) is length of content (#{blob_info.properties[:content_length]}), insert row in sincedb and wait for new content #{blob_info.name}")
+          else
+            @logger.info("#{DateTime.now} New content found in blob #{blob_info.name}. Querying range #{entity["ByteOffset"]} to #{blob_info.properties[:content_length]}.")
+
+            blob, content = @azure_blob.get_blob(@container,  blob_info.name, { :start_range => entity["ByteOffset"], :end_range =>  blob_info.properties[:content_length] })
+
+            @codec.decode(content) do |event|
+              decorate(event) # we could also add the host name that read the blob in the event from here.
+              # event["host"] = hostname...
+              output_queue << event
+            end
           end
 
           # Update the entity with the latest informations we used while processing the blob. If we have a crash,
